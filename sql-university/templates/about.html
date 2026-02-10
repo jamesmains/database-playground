@@ -1,0 +1,24 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<h2>About</h2>
+<h5>Tech</h5>
+<p>
+    <ul>
+        <li><a href="https://dbeaver.io/download/">DBeaver: View databases.</a></li>
+        <li><a href="https://www.docker.com/">Docker: Containers to make project portable (hopefully).</a></li>
+        <li><a href="https://flask.palletsprojects.com/en/stable/">Flask: Server back-end.</a></li>
+    </ul>
+    
+    
+    
+</p>
+<h5>Data is king.</h5>
+<p>
+    This project is about building my skills managing databases as well as providing tools to users that interact
+    with those databases. As an added bonus, I learned some more fun things with Flask like extensions; see 'stats' widget below!
+</p>
+
+
+{% include 'stats_widget.html' %}
+{% endblock %}

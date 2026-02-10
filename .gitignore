@@ -1,0 +1,13 @@
+# Ignore Python cache
+__pycache__/
+*.py[cod]
+
+# Ignore Docker database volumes (This is huge!)
+# Adjust this to match whatever folder your DB saves data to
+postgres_data/
+
+# Ignore environment variables (security)
+.env
+
+# Ignore python virtual environment
+.venv

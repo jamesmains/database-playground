@@ -1,19 +1,101 @@
 from flask import Flask, request, jsonify, render_template
 import psycopg2
 from psycopg2.extras import RealDictCursor
+import docker
+import os
 
 app = Flask(__name__)
 
 DB_PARAMS = {
-    "host":"localhost",
+    "host":"db",
     "database":"university_db",
     "user":"admin",
     "password":"password123"
 }
 
+client = docker.from_env()
+
 @app.route('/')
 def index(data=None):
     return render_template('index.html',data=data)
+
+@app.route('/about')
+def about():
+    return render_template('about.html')
+
+@app.route('/view/<table_name>')
+def view_table(table_name):
+    # Map friendly tables
+    allowed_tables = {
+        "students": "students",
+        "courses": "courses",
+        "enrollments": "enrollments"
+    }
+
+    if table_name not in allowed_tables:
+        return "Table not found", 404
+    
+    db_table = allowed_tables[table_name]
+    
+    conn = psycopg2.connect(**DB_PARAMS)
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+
+    # Get the data
+    cur.execute(f"SELECT * FROM {db_table}")
+    rows = cur.fetchall()
+
+    # Get column names
+    columns = rows[0].keys() if rows else []
+
+    cur.close()
+    conn.close()
+
+    return render_template('table_view.html',
+                            title=table_name.capitalize(),
+                            table_name = table_name,
+                            columns = columns,
+                            rows = rows
+                           )
+
+@app.route('/bad-example')
+def bad_example():
+    return render_template('bad-example.html')
+
+@app.route('/reset-database', methods=['POST'])
+def reset_database():
+    init_file = open("init.sql")
+    data_file = open("dummy-data.sql")
+    reset_command = init_file.read()
+    fill_command = data_file.read()
+    conn = psycopg2.connect(**DB_PARAMS)
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+    cur.execute(reset_command)
+    conn.commit()
+    cur.execute(fill_command)
+    conn.commit()
+    init_file.close()
+    data_file.close()
+    return jsonify({"status": "Database Stopped"})
+
+@app.route('/database-running', methods=['GET'])
+def database_running():
+    try:
+        # Use the label search we discussed earlier
+        containers = client.containers.list(all=True, filters={"label": "com.docker.compose.service=db"})
+        
+        if not containers:
+            return jsonify({"status": "Not Found"})
+
+        db_container = containers[0]
+        
+        # Docker status can be: 'running', 'exited', 'paused', 'restarting'
+        if db_container.status == 'running':
+            return jsonify({"status": "Running", "color": "green"})
+        else:
+            return jsonify({"status": "Stopped", "color": "red"})
+            
+    except Exception as e:
+        return jsonify({"status": "Error", "error": str(e)})
 
 @app.route('/run-sql', methods=['POST'])
 def run_sql():
@@ -36,5 +118,33 @@ def run_sql():
     except Exception as e:
         return jsonify({"error":str(e)}), 400
 
+@app.route('/db-control', methods=['POST'])
+def control_db():
+    action = request.json.get('action')
+    containers = client.containers.list(all=True, filters={"label": "com.docker.compose.service=db"})
+    if not containers:
+        return jsonify({"error": "Database container not found"}), 404            
+    target_db = containers[0]
+
+    try:
+        if action == 'stop':
+            target_db.stop()
+            return jsonify({"status": "Database Stopped"})
+        elif action == 'start':
+            target_db.start()
+            return jsonify({"status": "Database Started"})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/db-stats', methods=['GET'])
+def get_stats():
+    conn = psycopg2.connect(**DB_PARAMS)
+    cur = conn.cursor()
+    cur.execute("SELECT count(*) FROM information_schema.tables WHERE table_schema = 'public';")
+    count = cur.fetchone()[0]
+    cur.close()
+    conn.close()
+    return jsonify({"table_count":count})
+
 if __name__ == '__main__':
-    app.run(port=5000,debug=True)
+    app.run(host='0.0.0.0', port=5000,debug=True)

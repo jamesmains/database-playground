@@ -1,6 +1,10 @@
 What I used
 DBeaver - https://dbeaver.io/download/
 Docker - https://www.docker.com/
+Flask - https://flask.palletsprojects.com/en/stable/
+
+Turn on docker daemon:
+sudo systemctl start docker
 
 Create docker container:
 docker compose up -d

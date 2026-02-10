@@ -1,0 +1,63 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<h2>Manage {{ title }}</h2>
+
+<div class="add-section">
+    <h3>Add New Entry</h3>
+    <form id="addForm">
+        {% for col in columns if col != 'id' %}
+            <input type="text" name="{{ col }}" placeholder="{{ col | replace('_', ' ') }}">
+        {% endfor %}
+        <button type="button" onclick="saveEntry('{{ table_name }}', 'add')">Add</button>
+    </form>
+</div>
+
+<hr>
+
+<table class="pretty-table">
+    <thead>
+        <tr>
+            {% for col in columns %}
+                <th>{{ col | upper }}</th>
+            {% endfor %}
+            <th>ACTIONS</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for row in rows %}
+        <tr id="row-{{ row.id }}">
+            {% for col in columns %}
+                <td>
+                    {% if col == 'id' %}
+                        {{ row[col] }}
+                    {% else %}
+                        <input type="text" value="{{ row[col] }}" id="{{ col }}-{{ row.id }}">
+                    {% endif %}
+                </td>
+            {% endfor %}
+            <td>
+                <button onclick="saveEntry('{{ table_name }}', 'update', {{ row.id }})">Save</button>
+                <button onclick="deleteEntry('{{ table_name }}', {{ row.id }})" style="background:red;">Delete</button>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}
+
+<script>
+    async function deleteEntry(tableName, id) {
+    if (!confirm("Are you sure?")) return;
+    
+    const response = await fetch(`/api/${tableName}/${id}`, { method: 'DELETE' });
+    if (response.ok) {
+        document.getElementById(`row-${id}`).remove();
+    }
+}
+
+async function saveEntry(tableName, action, id = null) {
+    // Logic to gather input values and send a POST or PUT request
+    // to a generic API endpoint in your app.py
+}
+</script>

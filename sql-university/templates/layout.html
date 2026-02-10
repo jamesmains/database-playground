@@ -1,0 +1,36 @@
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
+
+<body>
+  <main class="container">
+    <nav>
+      <ul>
+        <li><strong>Jamesmains | SQL Database Front-end</strong></li>
+      </ul>
+      <ul>
+        <li><a href="{{ url_for('index') }}">Home</a></li>
+        <li><a href="{{ url_for('bad_example') }}">Bad-Example</a></li>
+        <li><a href="{{ url_for('view_table', table_name='students') }}">Students</a></li>
+        <li><a href="{{ url_for('view_table', table_name='enrollments') }}">Enrollments</a></li>
+        <li><a href="{{ url_for('view_table', table_name='courses') }}">Courses</a></li>
+        <li><a href="{{ url_for('about') }}">About</a></li>
+      </ul>
+    </nav>
+    {% block content %}{% endblock %}
+  </main>
+  <footer>
+    <div class="container">
+      <div class="grid">
+        <div>
+          <p>&copy; <span id="year"></span> Jamesmains. All rights reserved.</p>
+        </div>
+        <div>
+            <a href="https://github.com/jamesmains?tab=repositories">Github</a>
+            <a href="https://www.linkedin.com/in/tyler-jim-sims/">LinkedIn</a>
+        </div>
+      </div>
+    </div>
+  </footer>
+</body>
+<script>
+    document.getElementById("year").textContent = new Date().getFullYear();
+</script>
