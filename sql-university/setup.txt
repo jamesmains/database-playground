@@ -1,0 +1,19 @@
+What I used
+DBeaver - https://dbeaver.io/download/
+Docker - https://www.docker.com/
+
+Create docker container:
+docker compose up -d
+
+Remove container:
+docker compose down -v
+
+For the front-end
+Install: pip install -r requirements.txt
+You may need to be in a local virtual environment
+|-> python3 -m venv .venv
+|-> source .venv/bin/activate
+|-> Re-run the install command and restart your IDE if it doesn't reflect the changes immediately
+Run: 
+|-> source .venv/bin/activate (if not already activated)
+|-> python3 app.py

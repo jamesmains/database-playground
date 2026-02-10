@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        *{
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+    .pretty-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 20px 0;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+        border-radius: 8px;
+        overflow: hidden;
+    }
+
+    .pretty-table th {
+        background-color: #009879; /* A nice professional teal */
+        color: #ffffff;
+        text-align: left;
+        padding: 12px 15px;
+    }
+
+    .pretty-table td {
+        padding: 12px 15px;
+        border-bottom: 1px solid #dddddd;
+    }
+
+    /* This makes every other row slightly grey, making it easier to read */
+    .pretty-table tbody tr:nth-of-type(even) {
+        background-color: #f3f3f3;
+    }
+
+    /* A nice hover effect when you mouse over a row */
+    .pretty-table tbody tr:hover {
+        background-color: #f1f1f1;
+        cursor: default;
+    }
+</style>
+</head>
+<body>
+    <h2>My Database Playground</h2>
+    <textarea id="sqlInput" placeholder="SELECT * FROM students;"></textarea>
+    <button onclick="executeSQL()">Run Command</button>
+    <div id="table-container"></div>
+
+    <script>
+        async function executeSQL() {
+            const outputDiv = document.getElementById('table-container');
+            const query = document.getElementById('sqlInput').value;
+
+            // Clear previous results and show "loading"
+            outputDiv.innerHTML = "Processing...";
+
+            try {
+                const response = await fetch('http://localhost:5000/run-sql', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ query: query })
+                });
+
+                const result = await response.json();
+
+                if (result.error) {
+                    outputDiv.innerHTML = `<p style="color: red;">Error: ${result.error}</p>`;
+                    return;
+                }
+                console.log(result);
+                // If it's a SELECT query, build a table
+                if (Array.isArray(result.data)) {
+                    renderTable(result.data, outputDiv);
+                } else {
+                    outputDiv.innerHTML = `<p style="color: green;">${result.data}</p>`;
+                }
+            } catch (err) {
+                outputDiv.innerHTML = `<p style="color: red;">Connection Failed: ${err}</p>`;
+            }
+        }
+
+    function renderTable(data, container) {
+    if (data.length === 0) {
+        container.innerHTML = "No results found.";
+        return;
+    }
+
+    // 1. Get the column names from the first object's keys
+    const columns = Object.keys(data[0]);
+
+    let html = '<table class="pretty-table"><thead><tr>';
+    
+    // 2. Build Headers using the actual database column names
+    columns.forEach(col => {
+        html += `<th>${col.replace('_', ' ').toUpperCase()}</th>`;
+    });
+    
+    html += '</tr></thead><tbody>';
+
+    // 3. Build Rows using the keys
+    data.forEach(row => {
+        html += '<tr>';
+        columns.forEach(col => {
+            html += `<td>${row[col]}</td>`;
+        });
+        html += '</tr>';
+    });
+
+    html += '</tbody></table>';
+    container.innerHTML = html;
+}
+    </script>
+</body>
+
+</html>
