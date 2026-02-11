@@ -7,7 +7,7 @@
     <h3>Add New Entry</h3>
     <form id="addForm">
         {% for col in columns if col != 'id' %}
-            <input type="text" name="{{ col }}" placeholder="{{ col | replace('_', ' ') }}">
+        <input type="text" name="{{ col }}" placeholder="{{ col | replace('_', ' ') }}">
         {% endfor %}
         <button type="button" onclick="saveEntry('{{ table_name }}', 'add')">Add</button>
     </form>
@@ -19,45 +19,82 @@
     <thead>
         <tr>
             {% for col in columns %}
-                <th>{{ col | upper }}</th>
+            <th>{{ col | upper }}</th>
             {% endfor %}
             <th>ACTIONS</th>
         </tr>
     </thead>
     <tbody>
         {% for row in rows %}
-        <tr id="row-{{ row.id }}">
+        {# We find the primary key value dynamically #}
+        {% set row_id = row['id'] or row['enrollment_id'] %}
+
+        <tr id="row-{{ row_id }}">
             {% for col in columns %}
-                <td>
-                    {% if col == 'id' %}
-                        {{ row[col] }}
-                    {% else %}
-                        <input type="text" value="{{ row[col] }}" id="{{ col }}-{{ row.id }}">
-                    {% endif %}
-                </td>
-            {% endfor %}
             <td>
-                <button onclick="saveEntry('{{ table_name }}', 'update', {{ row.id }})">Save</button>
-                <button onclick="deleteEntry('{{ table_name }}', {{ row.id }})" style="background:red;">Delete</button>
+                {% if col == 'id' or col == 'enrollment_id' %}
+                {{ row[col] }}
+                {% else %}
+                {# Use the dynamic row_id for the input IDs #}
+                <input type="text" value="{{ row[col] }}" id="{{ col }}-{{ row_id }}">
+                {% endif %}
+            </td>{% endfor %}
+            <td>
+                <button onclick="saveEntry('{{ table_name }}', 'update', {{ row_id }})">Save</button>
+                <button onclick="deleteEntry('{{ table_name }}', {{ row_id }})" style="background:red;">Delete</button>
             </td>
-        </tr>
+            </tr>
         {% endfor %}
     </tbody>
 </table>
-{% endblock %}
+
 
 <script>
     async function deleteEntry(tableName, id) {
-    if (!confirm("Are you sure?")) return;
-    
-    const response = await fetch(`/api/${tableName}/${id}`, { method: 'DELETE' });
-    if (response.ok) {
-        document.getElementById(`row-${id}`).remove();
-    }
-}
+        if (!confirm("Are you sure?")) return;
 
-async function saveEntry(tableName, action, id = null) {
-    // Logic to gather input values and send a POST or PUT request
-    // to a generic API endpoint in your app.py
-}
+        const response = await fetch(`/api/${tableName}/${id}`, { method: 'DELETE' });
+        if (response.ok) {
+            document.getElementById(`row-${id}`).remove();
+        }
+    }
+
+    async function saveEntry(tableName, action, id = null) {
+        const data = {};
+
+        if (action === 'add') {
+            // Grab data from the top "Add New" form
+            const form = document.getElementById('addForm');
+            const formData = new FormData(form);
+            formData.forEach((value, key) => data[key] = value);
+        } else {
+            // Grab data from the specific row being edited
+            // We look for every input that ends with "-ID"
+            const inputs = document.querySelectorAll(`[id$="-${id}"]`);
+            inputs.forEach(input => {
+                const column = input.id.split(`-${id}`)[0];
+                data[column] = input.value;
+            });
+            data['id'] = id; // Ensure the ID is included for the UPDATE
+        }
+
+        const method = (action === 'add') ? 'POST' : 'PUT';
+        const url = (action === 'add') ? `/api/${tableName}` : `/api/${tableName}/${id}`;
+
+        try {
+            const response = await fetch(url, {
+                method: method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+
+            if (response.ok) {
+                alert(`${tableName} ${action}ed successfully!`);
+                location.reload(); // Refresh to show the new/updated data
+            }
+        } catch (err) {
+            console.error("Save failed", err);
+        }
+    }
 </script>
+{% endblock %}

@@ -17,7 +17,7 @@ CREATE TABLE courses (
 );
 
 CREATE TABLE enrollments (
-    enrollment_id SERIAL PRIMARY KEY,
+    id SERIAL PRIMARY KEY,
     student_id INT REFERENCES students(id) ON DELETE CASCADE,
     course_id INT REFERENCES courses(id) ON DELETE CASCADE,
     grade CHAR(2),

@@ -41,7 +41,7 @@ def view_table(table_name):
     cur = conn.cursor(cursor_factory=RealDictCursor)
 
     # Get the data
-    cur.execute(f"SELECT * FROM {db_table}")
+    cur.execute(f"SELECT * FROM {db_table} ORDER BY id ASC")
     rows = cur.fetchall()
 
     # Get column names
@@ -96,7 +96,49 @@ def database_running():
             
     except Exception as e:
         return jsonify({"status": "Error", "error": str(e)})
+    
+@app.route('/api/<table_name>', methods=['POST'])
+@app.route('/api/<table_name>/<int:entry_id>', methods=['PUT', 'DELETE'])
+def handle_api(table_name, entry_id=None):
+    # Security: Only allow specific tables
+    valid_tables = ['students', 'courses', 'enrollments']
+    if table_name not in valid_tables:
+        return jsonify({"error": "Invalid table"}), 400
 
+    conn = psycopg2.connect(**DB_PARAMS)
+    cur = conn.cursor()
+    
+    try:
+        if request.method == 'DELETE':
+            cur.execute(f"DELETE FROM {table_name} WHERE id = %s", (entry_id,))
+            
+        elif request.method == 'POST':
+            data = request.json
+            columns = data.keys()
+            values = [data[col] for col in columns]
+            # Build dynamic SQL: INSERT INTO table (col1, col2) VALUES (%s, %s)
+            query = f"INSERT INTO {table_name} ({', '.join(columns)}) VALUES ({', '.join(['%s']*len(values))})"
+            cur.execute(query, values)
+            
+        elif request.method == 'PUT':
+            data = request.json
+            # Remove 'id' from data if it exists so we don't try to update the PK
+            data.pop('id', None)
+            columns = data.keys()
+            values = [data[col] for col in columns]
+            # Build dynamic SQL: UPDATE table SET col1=%s, col2=%s WHERE id=%s
+            set_clause = ", ".join([f"{col}=%s" for col in columns])
+            query = f"UPDATE {table_name} SET {set_clause} WHERE id = %s"
+            cur.execute(query, values + [entry_id])
+
+        conn.commit()
+        return jsonify({"status": "success"})
+    except Exception as e:
+        conn.rollback()
+        return jsonify({"error": str(e)}), 500
+    finally:
+        cur.close()
+        conn.close()
 @app.route('/run-sql', methods=['POST'])
 def run_sql():
     query = request.json.get('query')
